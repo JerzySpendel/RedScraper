@@ -1,67 +1,135 @@
 import asyncio
 import aiohttp
+import aioredis
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urlparse
-import time
+from settings import config
+from processor import CustomProcessor
+from helpers import normalize_url
+from helpers import is_relative
 
 
 regex = re.compile(
-    r'^(?:http|ftp)s?://' # http:// or https://
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' # domain...
-    r'localhost|' # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|' # ...or ipv4
-    r'\[?[A-F0-9]*:[A-F0-9:]+\]?)' # ...or ipv6
-    r'(?::\d+)?' # optional port
+    r'(^(\/\w+)+)|' #relative url support
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    # domain...
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'  # ...or ipv4
+    r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # ...or ipv6
+    r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
 def download(url):
-    t = asyncio.Task(aiohttp.get(url))
-    return t
+    try:
+        return (yield from aiohttp.get(url))
+    except aiohttp.errors.ContentEncodingError:
+        print('During visiting {} ContentEncodingError ocurred'.format(url))
 
 
 class URLDispatcher:
+
     def __init__(self):
-        self.lock = asyncio.Lock()
-        self.to_visit = []
-        self.visited = []
+        self.to_visit = set()
+        self.visited = set()
 
     @asyncio.coroutine
-    def add_url_to_visit(self, url):
-        with (yield from self.lock):
-            if url not in self.to_visit and url not in self.visited:
-                self.to_visit.append(url)
+    def init(self):
+        pass
+
+    @asyncio.coroutine
+    def add_to_visit(self, url):
+        if url not in self.visited:
+            self.to_visit.update([url])
 
     @asyncio.coroutine
     def get_url(self):
         while len(self.to_visit) == 0:
             yield from asyncio.sleep(0.1)
-        with (yield from self.lock):
-            return self.to_visit.pop()
+        url = self.to_visit.pop()
+        yield from self.add_to_visited(url)
+        return url
 
     @asyncio.coroutine
     def add_to_visited(self, url):
-        with (yield from self.lock):
-            self.visited.append(url)
+        self.visited.update([url])
+
+
+class RedisURLDispatcher:
+
+    def __init__(self, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
+        self.url = config['redis']['url']
+        self.port = int(config['redis']['port'])
+        self.connection = None
+        self.to_visit, self.visited = config['redis']['to_visit'], \
+            config['redis']['visited']
+
+    @asyncio.coroutine
+    def init(self):
+        self.connection = yield from aioredis.create_connection((self.url, self.port), loop=self.loop, encoding='utf-8')
+        yield from self.connection.execute('flushdb')
+
+    @asyncio.coroutine
+    def add_to_visit(self, url):
+        in_visited = yield from self.connection.execute('sismember', self.visited, url)
+        if not in_visited == 1:
+            yield from self.connection.execute('sadd', self.to_visit, url)
+
+    @asyncio.coroutine
+    def get_url(self):
+        url = yield from self.connection.execute('spop', self.to_visit)
+        while url is None:
+            yield from asyncio.sleep(0.1)
+            url = yield from self.connection.execute('spop', self.to_visit)
+        yield from self.add_to_visited(url)
+        return url
+
+    @asyncio.coroutine
+    def add_to_visited(self, url):
+        yield from self.connection.execute('sadd', self.visited, url)
 
 
 class Crawler:
     domains = ['dobreprogramy.pl']
 
-    def __init__(self, urldis):
+    def __init__(self, urldis, data_processor):
         self.urldis = urldis
+        self.url_constraints = []
+        self.data_processor = data_processor
+
+    def set_url_constraint(self, constraint):
+        self.url_constraints = [constraint]
+
+    def append_url_constraint(self, constraint):
+        self.url_constraints.append(constraint)
 
     @asyncio.coroutine
     def crawl(self, future):
         url = yield from self.urldis.get_url()
-        print(url)
         site_downloader = download(url)
-        d = yield from site_downloader
+        try:
+            d = yield from site_downloader
+        except Exception as e:
+            print('Exception ocurred')
+            return
         html = yield from d.text()
-        for url in self.get_urls(html):
-            pass
-        yield from self.urldis.add_to_visited(url)
+        print(url)
+        for g_url in self.get_urls(html):
+            try:
+                n_url = normalize_url(g_url, visited='http://dobreprogramy.pl')
+            except Exception as e:
+                print(e)
+                continue
+            bad_url = False
+            for constraint in self.url_constraints:
+                if not constraint(n_url):
+                    bad_url = True
+            if bad_url:
+                continue
+            yield from self.urldis.add_to_visit(n_url)
+        yield from self.data_processor.feed_with_data(html)
         future.set_result(None)
 
     def get_urls(self, html):
@@ -72,28 +140,35 @@ class Crawler:
                 href = ass[i].get('href')
                 if not regex.match(href):
                     continue
-                if not self.domains[0] in href:
-                    continue
-                yield from self.urldis.add_url_to_visit(href)
-                yield urlparse(href).netloc
+                yield href
             except:
                 pass
 
 
-class DataProcessor:
-    def __init__(self):
-        self.data = []
-
-
 class CrawlersManager:
     CONCURRENT_MAX = 100
+    url_constraints = []
 
     def __init__(self):
-        self.url_dispatcher = URLDispatcher()
+        self.loop = asyncio.get_event_loop()
+        self.url_dispatcher = RedisURLDispatcher()
         self.semaphore = asyncio.Semaphore(value=100)
-        self.control_lock = asyncio.Lock()
-        self.url_dispatcher.to_visit.append('http://dobreprogramy.pl')
+        self.loop.run_until_complete(self.url_dispatcher.init())
+        self.loop.run_until_complete(self.url_dispatcher.add_to_visit(
+                                         'http://dobreprogramy.pl'))
         self.concurrent = 0
+        self.data_processor = CustomProcessor()
+
+    def set_url_constraint(self, constraint):
+        self.url_constraints = [constraint]
+
+    def append_url_constraint(self, constraint):
+        self.url_constraints.append(constraint)
+
+    def _new_crawler(self):
+        c = Crawler(self.url_dispatcher, self.data_processor)
+        c.url_constraints = self.url_constraints
+        return c
 
     @asyncio.coroutine
     def acquire(self):
@@ -111,7 +186,7 @@ class CrawlersManager:
             asyncio.Task(self.dispatch_control())
 
         future = asyncio.Future()
-        asyncio.Task(Crawler(self.url_dispatcher).crawl(future))
+        asyncio.Task(self._new_crawler().crawl(future))
         future.add_done_callback(lambda res: done_callback())
         return future
 
@@ -119,16 +194,23 @@ class CrawlersManager:
     def fire(self):
         future = self.fire_one()
         result = yield from future
-        yield from asyncio.sleep(10000)
 
     @asyncio.coroutine
     def dispatch_control(self):
-        with (yield from self.control_lock):
-            while self.concurrent != self.CONCURRENT_MAX:
-                yield from self.acquire()
-                asyncio.Task(self.fire())
+        while self.concurrent != self.CONCURRENT_MAX:
+            yield from self.acquire()
+            asyncio.Task(self.fire())
 
 
-urldispatcher = URLDispatcher()
-asyncio.get_event_loop().run_until_complete(CrawlersManager().dispatch_control())
-asyncio.get_event_loop().run_forever()
+if __name__ == '__main__':
+    def url_con(url):
+        r = re.compile('.*Aktualnosci,Najciekawsze,\d,\d{1,3}\.html$')
+        if r.match(url):
+            return True
+        return False
+
+    cw = CrawlersManager()
+    cw.set_url_constraint(url_con)
+    asyncio.get_event_loop().run_until_complete(
+        cw.dispatch_control())
+    asyncio.get_event_loop().run_forever()

@@ -3,6 +3,7 @@ import aioredis
 import asyncio
 from scraper import RedisURLDispatcher
 from scraper import URLDispatcher
+from helpers import normalize_url
 
 
 class RedisURLDispatcherTestCase(unittest.TestCase):
@@ -35,3 +36,9 @@ class URLDispatcherTestCase(unittest.TestCase):
         self.loop.run_until_complete(self.url_dispatcher.add_to_visit(url))
         self.assertTrue( len(self.url_dispatcher.to_visit) == 0)
         self.assertTrue( len(self.url_dispatcher.visited) == 1)
+
+
+class HelpersTestCase(unittest.TestCase):
+    def test_normalize_url(self):
+        self.assertTrue(normalize_url('http://dobreprogramy.pl') == 'http://dobreprogramy.pl')
+        self.assertTrue(normalize_url('/asdf/', 'http://dobreprogramy.pl') == 'http://dobreprogramy.pl/asdf/')
