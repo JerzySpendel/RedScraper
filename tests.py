@@ -4,13 +4,14 @@ import asyncio
 from scraper import RedisURLDispatcher
 from scraper import URLDispatcher
 from helpers import normalize_url
+from helpers import is_relative
 
 
 class RedisURLDispatcherTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.loop = asyncio.get_event_loop()
-        self.dispatcher = RedisURLDispatcher(self.loop, 'localhost')
+        self.dispatcher = RedisURLDispatcher()
 
     def test_add_to_visit(self):
         @asyncio.coroutine
@@ -42,3 +43,7 @@ class HelpersTestCase(unittest.TestCase):
     def test_normalize_url(self):
         self.assertTrue(normalize_url('http://dobreprogramy.pl') == 'http://dobreprogramy.pl')
         self.assertTrue(normalize_url('/asdf/', 'http://dobreprogramy.pl') == 'http://dobreprogramy.pl/asdf/')
+
+    def test_is_relative(self):
+        self.assertTrue(is_relative('/asdf/'))
+        self.assertTrue(not is_relative('http://dobreprogramy.pl'))
