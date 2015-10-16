@@ -92,8 +92,6 @@ class RedisURLDispatcher:
 
 
 class Crawler:
-    domains = ['dobreprogramy.pl']
-
     def __init__(self, urldis, data_processor):
         self.urldis = urldis
         self.url_constraints = []
@@ -118,7 +116,7 @@ class Crawler:
         print(url)
         for g_url in self.get_urls(html):
             try:
-                n_url = normalize_url(g_url, visited='http://dobreprogramy.pl')
+                n_url = normalize_url(g_url, visited=url)
             except Exception as e:
                 print(e)
                 continue
@@ -148,6 +146,7 @@ class Crawler:
 class CrawlersManager:
     CONCURRENT_MAX = 100
     url_constraints = []
+    domains = []
 
     def __init__(self):
         self.loop = asyncio.get_event_loop()
@@ -164,6 +163,9 @@ class CrawlersManager:
 
     def append_url_constraint(self, constraint):
         self.url_constraints.append(constraint)
+
+    def set_concurrent_crawlers(self, n):
+        self.CONCURRENT_MAX = n
 
     def _new_crawler(self):
         c = Crawler(self.url_dispatcher, self.data_processor)
