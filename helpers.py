@@ -13,7 +13,6 @@ def normalize_url(url, visited=None):
         url_parse = urlparse(url)
         visited_parse = urlparse(visited)
         if url_parse.scheme == '' and url_parse.netloc == '':
-            # return '{}://{}{}'.format(visited_parse.scheme, visited_parse.netloc, url_parse.path)
             return urljoin(visited, url)
         return url
     except:

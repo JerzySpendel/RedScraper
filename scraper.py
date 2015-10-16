@@ -6,7 +6,8 @@ import re
 from settings import config
 from processor import CustomProcessor
 from helpers import normalize_url
-from helpers import is_relative
+import signal
+import sys
 
 
 regex = re.compile(
@@ -144,9 +145,8 @@ class Crawler:
 
 
 class CrawlersManager:
-    CONCURRENT_MAX = 100
+    CONCURRENT_MAX = 10
     url_constraints = []
-    domains = []
 
     def __init__(self):
         self.loop = asyncio.get_event_loop()
@@ -157,6 +157,26 @@ class CrawlersManager:
                                          'http://dobreprogramy.pl'))
         self.concurrent = 0
         self.data_processor = CustomProcessor()
+        signal.signal(signal.SIGINT, self._quit_handler)
+
+    def _quit_handler(self, signal, frame):
+        print('All crawlers are being stopped...')
+        self.set_concurrent_crawlers(0)
+        output = sys.stdout
+        sys.stdout = None
+
+        @asyncio.coroutine
+        def closing_task():
+            while self.concurrent != 0:
+                yield from asyncio.sleep(0.5)
+            sys.stdout = output
+            self.url_dispatcher.connection.close()
+            self.data_processor.transport.connection.close()
+            print('Crawlers and connections closed')
+            self.loop.stop()
+            print('Loop closed')
+
+        asyncio.Task(closing_task())
 
     def set_url_constraint(self, constraint):
         self.url_constraints = [constraint]
@@ -199,7 +219,7 @@ class CrawlersManager:
 
     @asyncio.coroutine
     def dispatch_control(self):
-        while self.concurrent != self.CONCURRENT_MAX:
+        while self.concurrent < self.CONCURRENT_MAX:
             yield from self.acquire()
             asyncio.Task(self.fire())
 
