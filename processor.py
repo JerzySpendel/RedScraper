@@ -31,6 +31,7 @@ class DataProcessor:
             self.data_objects.append(processed)
             if len(self.data_objects) > self.buffer_size:
                 yield from self.transport.save(self)
+                self.data_objects = []
 
     def __iter__(self):
         for data_object in self.data_objects:
