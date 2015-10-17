@@ -138,9 +138,8 @@ class Crawler:
         for i in range(len(ass)):
             try:
                 href = ass[i].get('href')
-                if not regex.match(href):
-                    continue
-                yield href
+                if regex.match(href):
+                    yield href
             except:
                 pass
 
@@ -161,7 +160,7 @@ class CrawlersManager:
         signal.signal(signal.SIGINT, self._quit_handler)
 
     def _quit_handler(self, signal, frame):
-        print('\nAll crawlers are being stopped...')
+        print('\nAll crawlers are being stopped')
         self.set_concurrent_crawlers(0)
         output = sys.stdout
         sys.stdout = None #silence crawlers
@@ -184,6 +183,7 @@ class CrawlersManager:
         if self.start_url:
             self.loop.run_until_complete(self.url_dispatcher.add_to_visit(
                 self.start_url))
+            asyncio.Task(self.constant_control())
 
     def _parse_cli(self):
         if cli_args.concurrent:
@@ -236,6 +236,13 @@ class CrawlersManager:
             yield from self.acquire()
             asyncio.Task(self.fire())
 
+    @asyncio.coroutine
+    def constant_control(self):
+        while True:
+            while self.concurrent < self.CONCURRENT_MAX:
+                yield from self.acquire()
+                asyncio.Task(self.fire())
+            yield from asyncio.sleep(1)
 
 if __name__ == '__main__':
     def url_con(url):

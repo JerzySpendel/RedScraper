@@ -35,8 +35,8 @@ class URLDispatcherTestCase(unittest.TestCase):
         self.loop.run_until_complete(self.url_dispatcher.add_to_visit(url))
         self.loop.run_until_complete(self.url_dispatcher.get_url())
         self.loop.run_until_complete(self.url_dispatcher.add_to_visit(url))
-        self.assertTrue( len(self.url_dispatcher.to_visit) == 0)
-        self.assertTrue( len(self.url_dispatcher.visited) == 1)
+        self.assertTrue(len(self.url_dispatcher.to_visit) == 0)
+        self.assertTrue(len(self.url_dispatcher.visited) == 1)
 
 
 class HelpersTestCase(unittest.TestCase):
