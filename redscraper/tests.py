@@ -1,11 +1,11 @@
 import unittest
 import aioredis
 import asyncio
-from scraper import RedisURLDispatcher
-from scraper import URLDispatcher
-from scraper import CrawlersManager
-from helpers import normalize_url
-from helpers import is_relative
+from .scraper import RedisURLDispatcher
+from .scraper import URLDispatcher
+from .scraper import CrawlersManager
+from .helpers import normalize_url
+from .helpers import is_relative
 
 
 class RedisURLDispatcherTestCase(unittest.TestCase):

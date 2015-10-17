@@ -1,5 +1,5 @@
 import asyncio
-from transport import RedisTransport
+from .transport import RedisTransport
 from lxml import etree
 import json
 from io import StringIO

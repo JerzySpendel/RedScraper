@@ -3,10 +3,10 @@ import aiohttp
 import aioredis
 from bs4 import BeautifulSoup
 import re
-from settings import config
-from processor import CustomProcessor
-from helpers import normalize_url
-from cli import args as cli_args
+from .settings import config
+from .processor import CustomProcessor
+from .helpers import normalize_url
+from .cli import args as cli_args
 import signal
 import sys
 

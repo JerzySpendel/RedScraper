@@ -1,6 +1,6 @@
 import aioredis
 import asyncio
-from settings import config
+from .settings import config
 
 
 class RedisTransport:
