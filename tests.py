@@ -3,6 +3,7 @@ import aioredis
 import asyncio
 from scraper import RedisURLDispatcher
 from scraper import URLDispatcher
+from scraper import CrawlersManager
 from helpers import normalize_url
 from helpers import is_relative
 
@@ -47,3 +48,18 @@ class HelpersTestCase(unittest.TestCase):
     def test_is_relative(self):
         self.assertTrue(is_relative('/asdf/'))
         self.assertTrue(not is_relative('http://dobreprogramy.pl'))
+
+
+class CrawlersManagerTestCase(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.loop = asyncio.get_event_loop()
+        self.cm = CrawlersManager()
+
+    def test_semaphore(self):
+        self.assertEqual(self.cm.concurrent, 0)
+        self.loop.run_until_complete(self.cm.acquire())
+        self.assertEqual(self.cm.concurrent, 1)
+
+    def tearDown(self):
+        self.cm._close_connections()

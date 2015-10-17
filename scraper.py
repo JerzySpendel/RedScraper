@@ -154,6 +154,7 @@ class CrawlersManager:
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
         self.semaphore = asyncio.Semaphore(value=self.CONCURRENT_MAX)
+        self.cc_future = asyncio.Future()
         self.concurrent = 0
         self._do_some_init()
         self.data_processor = CustomProcessor()
@@ -162,6 +163,7 @@ class CrawlersManager:
     def _quit_handler(self, signal, frame):
         print('\nAll crawlers are being stopped')
         self.set_concurrent_crawlers(0)
+        self.cc_future.set_result(None)
         output = sys.stdout
         sys.stdout = None #silence crawlers
 
@@ -170,8 +172,7 @@ class CrawlersManager:
             while self.concurrent != 0:
                 yield from asyncio.sleep(0.5)
             sys.stdout = output
-            self.url_dispatcher.connection.close()
-            self.data_processor.transport.connection.close()
+            self._close_connections()
             print('Crawlers and connections closed')
             self.loop.stop()
             print('Loop closed')
@@ -183,13 +184,16 @@ class CrawlersManager:
         if self.start_url:
             self.loop.run_until_complete(self.url_dispatcher.add_to_visit(
                 self.start_url))
-            asyncio.Task(self.constant_control())
 
     def _parse_cli(self):
         if cli_args.concurrent:
             self.CONCURRENT_MAX = cli_args.concurrent
         if cli_args.slave:
             self.start_url = None
+
+    def _close_connections(self):
+        self.url_dispatcher.connection.close()
+        self.data_processor.transport.connection.close()
 
     def set_url_constraint(self, constraint):
         self.url_constraints = [constraint]
@@ -218,7 +222,7 @@ class CrawlersManager:
 
         def done_callback():
             self.release()
-            asyncio.Task(self.dispatch_control())
+            asyncio.Task(self.crawler_done())
 
         future = asyncio.Future()
         asyncio.Task(self._new_crawler().crawl(future))
@@ -232,13 +236,17 @@ class CrawlersManager:
 
     @asyncio.coroutine
     def dispatch_control(self):
+        asyncio.Task(self.constant_control(self.cc_future))
+
+    @asyncio.coroutine
+    def crawler_done(self):
         while self.concurrent < self.CONCURRENT_MAX:
             yield from self.acquire()
             asyncio.Task(self.fire())
 
     @asyncio.coroutine
-    def constant_control(self):
-        while True:
+    def constant_control(self, future):
+        while not future.done():
             while self.concurrent < self.CONCURRENT_MAX:
                 yield from self.acquire()
                 asyncio.Task(self.fire())
