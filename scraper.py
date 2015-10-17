@@ -6,6 +6,7 @@ import re
 from settings import config
 from processor import CustomProcessor
 from helpers import normalize_url
+from cli import args as cli_args
 import signal
 import sys
 
@@ -149,21 +150,21 @@ class CrawlersManager:
     url_constraints = []
 
     def __init__(self):
+        self.start_url = config['scraper']['start_url']
+        self._parse_cli()
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
-        self.semaphore = asyncio.Semaphore(value=100)
-        self.loop.run_until_complete(self.url_dispatcher.init())
-        self.loop.run_until_complete(self.url_dispatcher.add_to_visit(
-                                         'http://dobreprogramy.pl'))
+        self.semaphore = asyncio.Semaphore(value=self.CONCURRENT_MAX)
         self.concurrent = 0
+        self._do_some_init()
         self.data_processor = CustomProcessor()
         signal.signal(signal.SIGINT, self._quit_handler)
 
     def _quit_handler(self, signal, frame):
-        print('All crawlers are being stopped...')
+        print('\nAll crawlers are being stopped...')
         self.set_concurrent_crawlers(0)
         output = sys.stdout
-        sys.stdout = None
+        sys.stdout = None #silence crawlers
 
         @asyncio.coroutine
         def closing_task():
@@ -177,6 +178,18 @@ class CrawlersManager:
             print('Loop closed')
 
         asyncio.Task(closing_task())
+
+    def _do_some_init(self):
+        self.loop.run_until_complete(self.url_dispatcher.init())
+        if self.start_url:
+            self.loop.run_until_complete(self.url_dispatcher.add_to_visit(
+                self.start_url))
+
+    def _parse_cli(self):
+        if cli_args.concurrent:
+            self.CONCURRENT_MAX = cli_args.concurrent
+        if cli_args.slave:
+            self.start_url = None
 
     def set_url_constraint(self, constraint):
         self.url_constraints = [constraint]
