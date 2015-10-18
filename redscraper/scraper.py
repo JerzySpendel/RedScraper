@@ -148,7 +148,7 @@ class CrawlersManager:
     CONCURRENT_MAX = 10
     url_constraints = []
 
-    def __init__(self):
+    def __init__(self, data_processor=None):
         self.start_url = config['scraper']['start_url']
         self._parse_cli()
         self.loop = asyncio.get_event_loop()
@@ -157,7 +157,7 @@ class CrawlersManager:
         self.cc_future = asyncio.Future()
         self.concurrent = 0
         self._do_some_init()
-        self.data_processor = CustomProcessor()
+        self.data_processor = data_processor or CustomProcessor()
         signal.signal(signal.SIGINT, self._quit_handler)
 
     def _quit_handler(self, signal, frame):
