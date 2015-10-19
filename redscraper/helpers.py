@@ -1,4 +1,6 @@
 from urllib.parse import urlparse, urljoin
+import inspect
+import functools
 
 
 def is_relative(url):
@@ -17,3 +19,14 @@ def normalize_url(url, visited=None):
         return url
     except:
         raise Exception("URL couldn't be normalized")
+
+
+def make_generator_if_needed(f):
+
+    def wrapper():
+        if inspect.isgenerator(f):
+            yield from f
+        else:
+            yield f
+
+    return wrapper()

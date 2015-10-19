@@ -4,6 +4,7 @@ from .transport import RedisTransport
 from lxml import etree
 import json
 from io import StringIO
+from .helpers import make_generator_if_needed
 
 
 class DataProcessor:
@@ -26,20 +27,13 @@ class DataProcessor:
 
     @asyncio.coroutine
     def feed_with_data(self, data):
-        processed = self.process(data) #TODO: this should be always generator
-        if inspect.isgenerator(processed):
-            for data_processed in processed:
-                if processed is not None:
-                    self.data_objects.append(data_processed)
-                    if len(self.data_objects) > self.buffer_size:
-                        yield from self.transport.save(self)
-                        self.data_objects = []
-            return
-        if processed is not None:
-            self.data_objects.append(processed)
-            if len(self.data_objects) > self.buffer_size:
-                yield from self.transport.save(self)
-                self.data_objects = []
+        processed = make_generator_if_needed(self.process(data))
+        for data_processed in processed:
+            if processed is not None:
+                self.data_objects.append(data_processed)
+                if len(self.data_objects) > self.buffer_size:
+                    yield from self.transport.save(self)
+                    self.data_objects = []
 
     def __iter__(self):
         for data_object in self.data_objects:
