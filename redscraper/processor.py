@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from .transport import RedisTransport
 from lxml import etree
 import json
@@ -25,7 +26,15 @@ class DataProcessor:
 
     @asyncio.coroutine
     def feed_with_data(self, data):
-        processed = self.process(data)
+        processed = self.process(data) #TODO: this should be always generator
+        if inspect.isgenerator(processed):
+            for data_processed in processed:
+                if processed is not None:
+                    self.data_objects.append(data_processed)
+                    if len(self.data_objects) > self.buffer_size:
+                        yield from self.transport.save(self)
+                        self.data_objects = []
+            return
         if processed is not None:
             self.data_objects.append(processed)
             if len(self.data_objects) > self.buffer_size:

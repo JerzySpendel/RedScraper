@@ -8,11 +8,10 @@ import json
 
 
 class TPBProcessor(DataProcessor):
-    @asyncio.coroutine
     def process(self, data):
         parser = etree.HTMLParser()
         root = etree.parse(StringIO(data), parser=parser).getroot()
-        return root.xpath('//a[@class="cellMainLink"]/text()')
+        yield from root.xpath('//a[@class="cellMainLink"]/text()')
 
     def serialize_data_object(self, data_object):
         return json.dumps(data_object)
