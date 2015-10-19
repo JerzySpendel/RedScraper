@@ -17,7 +17,6 @@ class DataProcessor:
     def set_transport(self, transport):
         self.transport = transport
 
-    @asyncio.coroutine
     def process(self, data):
         pass
 
@@ -26,7 +25,7 @@ class DataProcessor:
 
     @asyncio.coroutine
     def feed_with_data(self, data):
-        processed = yield from self.process(data)
+        processed = self.process(data)
         if processed is not None:
             self.data_objects.append(processed)
             if len(self.data_objects) > self.buffer_size:
@@ -40,7 +39,6 @@ class DataProcessor:
 
 class CustomProcessor(DataProcessor):
 
-    @asyncio.coroutine
     def process(self, data):
         parser = etree.HTMLParser()
         root = etree.parse(StringIO(data), parser=parser).getroot()

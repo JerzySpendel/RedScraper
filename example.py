@@ -17,6 +17,7 @@ class TPBProcessor(DataProcessor):
     def serialize_data_object(self, data_object):
         return json.dumps(data_object)
 
+
 def new_url(url):
     r = re.compile('.*new/\d+')
     if r.match(url):
