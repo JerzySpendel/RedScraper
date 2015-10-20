@@ -73,8 +73,12 @@ class LoadBalancerConfigurationTestCase(unittest.TestCase):
         self.balancer = LoadBalancer()
 
     def test_set_max_requests_per_minute(self):
-        self.balancer.set_requests_limit(10)
-        self.assertEqual(10, self.balancer.get_requests_limit())
+        self.balancer.set_requests_limit(10, LoadBalancer.MINUTE)
+        self.assertEqual(self.balancer.get_requests_limit(), (10, LoadBalancer.MINUTE))
+
+    def test_set_max_requests_per_second(self):
+        self.balancer.set_requests_limit(10, LoadBalancer.SECOND)
+        self.assertEqual(self.balancer.get_requests_limit(), (10, LoadBalancer.SECOND))
 
 
 class LoadBalancerTestCase(unittest.TestCase):

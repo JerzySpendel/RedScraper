@@ -36,18 +36,20 @@ class LoadBalancer:
     def _increment(self):
         self.fullness_rate += fractions.Fraction(1, self.limit)
 
-    def set_requests_limit(self, limit):
+    def set_requests_limit(self, limit, type=None):
         '''
         :param limit: max requests per unit of time
         :return:
         '''
+        type = type or LoadBalancer.MINUTE
         self.limit = limit
+        self.unit_type = type
 
     def get_requests_limit(self):
         '''
         :return: max requests per unit of time
         '''
-        return self.limit
+        return (self.limit, self.unit_type)
 
     @asyncio.coroutine
     def ask(self):
