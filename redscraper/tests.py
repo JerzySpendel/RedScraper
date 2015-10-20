@@ -101,7 +101,7 @@ class LoadBalancerTestCase(unittest.TestCase):
         self.assertLess(future.result(), 0.1)
 
     def test_balancer_time_limit(self):
-        request_time = 0.1
+        request_time = 0.05
 
         @asyncio.coroutine
         def request_faker():
@@ -121,3 +121,28 @@ class LoadBalancerTestCase(unittest.TestCase):
         future = asyncio.Future()
         self.loop.run_until_complete(testing_coroutine(future))
         self.assertGreater(future.result(), request_time)
+
+    def test_embedded_balancers(self):
+        balancer = LoadBalancer()
+        balancer.set_requests_limit(1, LoadBalancer.SECOND)
+        self.balancer.add_balancer(balancer)
+
+        @asyncio.coroutine
+        def request_faker():
+            yield from self.balancer.ask()
+            yield from asyncio.sleep(0.5)
+
+        @asyncio.coroutine
+        def testing_coroutine(future):
+            coro_list = []
+            t = time.time()
+            for i in range(3):
+                task = asyncio.Task(request_faker())
+                coro_list.append(task)
+            yield from asyncio.wait(coro_list)
+            future.set_result(time.time() - t)
+
+        future = asyncio.Future()
+        self.loop.run_until_complete(testing_coroutine(future))
+        self.assertGreater(future.result(), 2)
+        self.assertLess(future.result(), 3)

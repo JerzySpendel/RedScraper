@@ -12,6 +12,7 @@ class LoadBalancer:
         self.limit = 60
         self.fullness_rate = fractions.Fraction(0, self.limit)
         self.unit_type = LoadBalancer.MINUTE
+        self.balancers = []
         self.t = time.time()
 
     @property
@@ -58,9 +59,16 @@ class LoadBalancer:
         after yielding from this coroutine
         '''
         self._update_fullness_rate()
-        if self.fullness_rate < 1:
+        for balancer in self.balancers:
+            balancer._update_fullness_rate()
+        if self.fullness_rate < 1 and (not any(map(lambda x: x.fullness_rate >= 1, self.balancers))):
             self._increment()
+            for balancer in self.balancers:
+                balancer._increment()
             return
         else:
             yield from asyncio.sleep(0.5) #TODO: delete hardcoded time
             yield from self.ask()
+
+    def add_balancer(self, balancer):
+        self.balancers.append(balancer)
