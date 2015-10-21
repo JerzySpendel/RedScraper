@@ -8,10 +8,10 @@ class LoadBalancer:
     MINUTE = 60
     SECOND = 1
 
-    def __init__(self):
-        self.limit = 60
+    def __init__(self, limit=None, type=None):
+        self.limit = limit or 60
         self.fullness_rate = fractions.Fraction(0, self.limit)
-        self.unit_type = LoadBalancer.MINUTE
+        self.unit_type = type or LoadBalancer.MINUTE
         self.balancers = []
         self.t = time.time()
 
@@ -70,5 +70,10 @@ class LoadBalancer:
             yield from asyncio.sleep(0.5) #TODO: delete hardcoded time
             yield from self.ask()
 
-    def add_balancer(self, balancer):
-        self.balancers.append(balancer)
+    def add_balancer(self, balancer=None, limit=None, type=None):
+        if balancer is not None:
+            self.balancers.append(balancer)
+            return
+        balancer = LoadBalancer()
+        balancer.set_requests_limit(limit, type)
+        self.add_balancer(balancer)
