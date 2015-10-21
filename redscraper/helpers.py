@@ -8,6 +8,10 @@ def is_relative(url):
 
 
 def normalize_url(url, visited=None):
+    '''
+    Main usage is to change relative URL to absolute
+    basing on last `visited` url
+    '''
     try:
         url = url.strip()
         if visited is None:
@@ -22,7 +26,12 @@ def normalize_url(url, visited=None):
 
 
 def make_generator_if_needed(f):
-
+    '''
+    Returns the same generator if `f` is generator or
+    generator yielding `f` otherwise
+    :param f: function or function-generator
+    :return:
+    '''
     def wrapper():
         if inspect.isgenerator(f):
             yield from f
