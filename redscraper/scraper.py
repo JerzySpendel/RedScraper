@@ -31,6 +31,9 @@ def download(url):
 
 
 class URLDispatcher:
+    '''
+    Simple URL dispatcher storing URLs in-memory
+    '''
 
     def __init__(self):
         self.to_visit = set()
@@ -59,6 +62,10 @@ class URLDispatcher:
 
 
 class RedisURLDispatcher:
+    '''
+    Class responsible for feeding crawlers with URLs (stored in redis)
+    to visit
+    '''
 
     def __init__(self, loop=None):
         self.loop = loop or asyncio.get_event_loop()
