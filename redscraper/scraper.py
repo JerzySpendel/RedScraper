@@ -7,6 +7,7 @@ from .settings import config
 from .processor import CustomProcessor
 from .helpers import normalize_url
 from .cli import args as cli_args
+from .balancer import LoadBalancer
 import signal
 import sys
 
@@ -78,7 +79,6 @@ class RedisURLDispatcher:
     @asyncio.coroutine
     def init(self):
         self.connection = yield from aioredis.create_connection((self.url, self.port), loop=self.loop, encoding='utf-8')
-        yield from self.connection.execute('flushdb')
 
     @asyncio.coroutine
     def add_to_visit(self, url):
@@ -101,10 +101,11 @@ class RedisURLDispatcher:
 
 
 class Crawler:
-    def __init__(self, urldis, data_processor):
+    def __init__(self, urldis, data_processor, load_balancer):
         self.urldis = urldis
         self.url_constraints = []
         self.data_processor = data_processor
+        self.load_balancer = load_balancer
 
     def set_url_constraint(self, constraint):
         self.url_constraints = [constraint]
@@ -114,6 +115,7 @@ class Crawler:
 
     @asyncio.coroutine
     def crawl(self, future):
+        yield from self.load_balancer.ask()
         url = yield from self.urldis.get_url()
         site_downloader = download(url)
         try:
@@ -165,6 +167,7 @@ class CrawlersManager:
         self.concurrent = 0
         self._do_some_init()
         self.data_processor = data_processor or CustomProcessor()
+        self.load_balancer = LoadBalancer()
         signal.signal(signal.SIGINT, self._quit_handler)
 
     def _quit_handler(self, signal, frame):
@@ -221,7 +224,7 @@ class CrawlersManager:
         self.CONCURRENT_MAX = n
 
     def _new_crawler(self):
-        c = Crawler(self.url_dispatcher, self.data_processor)
+        c = Crawler(self.url_dispatcher, self.data_processor, self.load_balancer)
         c.url_constraints = self.url_constraints
         return c
 

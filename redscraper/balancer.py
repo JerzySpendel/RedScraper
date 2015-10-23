@@ -9,13 +9,14 @@ class LoadBalancer:
     MINUTE = 60
     SECOND = 1
 
-    def __init__(self, limit=None, type=None):
+    def __init__(self, limit=None, type=None, under_balancer=False):
         self.limit = limit
         self.fullness_rate = fractions.Fraction(0, self.limit)
         self.unit_type = type
         self.balancers = []
         self.t = time.time()
-        self._load_config()
+        if not under_balancer:
+            self._load_config()
 
     def _load_config(self):
         if 'load_balancer' not in config:
@@ -77,7 +78,7 @@ class LoadBalancer:
             self.limit = limit
             self.unit_type = type
         else:
-            balancer = LoadBalancer(limit=limit, type=type)
+            balancer = LoadBalancer(limit=limit, type=type, under_balancer=True)
             self.add_balancer(balancer)
 
     def get_requests_limit(self):
