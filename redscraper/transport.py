@@ -4,6 +4,9 @@ from .settings import config
 
 
 class RedisTransport:
+    '''
+    Abstration layer between crawlers and storaging data
+    '''
     def __init__(self, loop=None):
         self.url = config['redis']['url']
         self.port = config['redis']['port']

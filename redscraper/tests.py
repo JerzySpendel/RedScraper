@@ -93,6 +93,11 @@ class LoadBalancerConfigurationTestCase(unittest.TestCase):
     def test_creating_balancer(self):
         balancer = LoadBalancer(30, LoadBalancer.MINUTE)
 
+    def test_balancer_rest(self):
+        self.assertLess(self.balancer._rest(), 1)
+        self.assertGreater(self.balancer._rest(), 0.5)
+        time.sleep(1)
+        self.assertEqual(self.balancer._rest(), 0)
 
 class LoadBalancerTestCase(unittest.TestCase):
     def setUp(self):
