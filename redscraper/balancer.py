@@ -37,6 +37,19 @@ class LoadBalancer:
     def _increment(self):
         self.fullness_rate += fractions.Fraction(1, self.limit)
 
+    def _rest(self):
+        '''
+        Calculates how much time have to pass to allow another ask()
+        '''
+        t = self.unit_type/self.limit - self.dt
+        if not self.balancers:
+            return t if t >= 0 else 0
+        else:
+            for balancer in self.balancers:
+                bt = balancer.unit_type/balancer.limit - self.dt
+            t = bt if bt > t else t
+        return t if t >= 0 else 0
+
     def set_requests_limit(self, limit, type=None):
         '''
         :param limit: max requests per unit of time
@@ -67,7 +80,7 @@ class LoadBalancer:
                 balancer._increment()
             return
         else:
-            yield from asyncio.sleep(0.5) #TODO: delete hardcoded time
+            yield from asyncio.sleep(self._rest())
             yield from self.ask()
 
     def add_balancer(self, balancer=None, limit=None, type=None):
