@@ -159,16 +159,16 @@ class CrawlersManager:
 
     def __init__(self, data_processor=None):
         self.start_url = config['scraper']['start_url']
-        self._parse_cli()
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
         self.semaphore = asyncio.Semaphore(value=self.CONCURRENT_MAX)
         self.cc_future = asyncio.Future()
         self.concurrent = 0
-        self._do_some_init()
         self.data_processor = data_processor or CustomProcessor()
         self.load_balancer = LoadBalancer()
         signal.signal(signal.SIGINT, self._quit_handler)
+        self._parse_cli()
+        self._do_some_init()
 
     def _quit_handler(self, signal, frame):
         print('\nAll crawlers are being stopped')
