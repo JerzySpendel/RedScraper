@@ -70,7 +70,7 @@ class CrawlersManagerTestCase(unittest.TestCase):
 class LoadBalancerConfigurationTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
-        self.balancer = LoadBalancer()
+        self.balancer = LoadBalancer(limit=60, type=LoadBalancer.MINUTE)
 
     def test_set_max_requests_per_minute(self):
         self.balancer.set_requests_limit(10, LoadBalancer.MINUTE)
@@ -86,7 +86,7 @@ class LoadBalancerConfigurationTestCase(unittest.TestCase):
 
     def test_adding_balancer2(self):
         balancer = LoadBalancer()
-        balancer.set_requests_limit(30, LoadBalancer.MINUTE)
+        balancer.add_requests_limit(30, LoadBalancer.MINUTE)
         self.balancer.add_balancer(balancer)
         self.assertEqual(len(self.balancer.balancers), 1)
 
@@ -99,12 +99,13 @@ class LoadBalancerConfigurationTestCase(unittest.TestCase):
         time.sleep(1)
         self.assertEqual(self.balancer._rest(), 0)
 
+
 class LoadBalancerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.loop = asyncio.get_event_loop()
         self.balancer = LoadBalancer()
-        self.balancer.set_requests_limit(60)
+        self.balancer.add_requests_limit(60)
 
     def test_simple_asking(self):
 
@@ -142,7 +143,7 @@ class LoadBalancerTestCase(unittest.TestCase):
 
     def test_embedded_balancers(self):
         balancer = LoadBalancer()
-        balancer.set_requests_limit(1, LoadBalancer.SECOND)
+        balancer.add_requests_limit(1, LoadBalancer.SECOND)
         self.balancer.add_balancer(balancer)
 
         @asyncio.coroutine

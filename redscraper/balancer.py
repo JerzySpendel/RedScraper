@@ -2,6 +2,7 @@ import asyncio
 import fractions
 import time
 import math
+from .settings import config
 
 
 class LoadBalancer:
@@ -9,11 +10,22 @@ class LoadBalancer:
     SECOND = 1
 
     def __init__(self, limit=None, type=None):
-        self.limit = limit or 60
+        self.limit = limit
         self.fullness_rate = fractions.Fraction(0, self.limit)
-        self.unit_type = type or LoadBalancer.MINUTE
+        self.unit_type = type
         self.balancers = []
         self.t = time.time()
+        self._load_config()
+
+    def _load_config(self):
+        if 'load_balancer' not in config:
+            return
+        LB = config['load_balancer']
+        if 'requests' in LB:
+            if 'per_minute' in LB['requests']:
+                self.add_requests_limit(int(LB['requests']['per_minute']), type=LoadBalancer.MINUTE)
+            if 'per_second' in LB['requests']:
+                self.add_requests_limit(int(LB['requests']['per_second']), type=LoadBalancer.SECOND)
 
     @property
     def dt(self):
@@ -51,13 +63,22 @@ class LoadBalancer:
         return t if t >= 0 else 0
 
     def set_requests_limit(self, limit, type=None):
+        type = type or LoadBalancer.MINUTE
+        self.limit = limit
+        self.unit_type = type
+
+    def add_requests_limit(self, limit, type=None):
         '''
         :param limit: max requests per unit of time
         :return:
         '''
         type = type or LoadBalancer.MINUTE
-        self.limit = limit
-        self.unit_type = type
+        if self.limit is None or self.unit_type is None:
+            self.limit = limit
+            self.unit_type = type
+        else:
+            balancer = LoadBalancer(limit=limit, type=type)
+            self.add_balancer(balancer)
 
     def get_requests_limit(self):
         '''
@@ -88,5 +109,5 @@ class LoadBalancer:
             self.balancers.append(balancer)
             return
         balancer = LoadBalancer()
-        balancer.set_requests_limit(limit, type)
+        balancer.add_requests_limit(limit, type)
         self.add_balancer(balancer)
