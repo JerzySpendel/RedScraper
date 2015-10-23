@@ -3,7 +3,7 @@ import asyncio
 from .settings import config
 
 
-class RedisTransport:
+class RedisStorage:
     '''
     Abstration layer between crawlers and storaging data
     '''

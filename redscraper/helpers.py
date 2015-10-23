@@ -30,7 +30,7 @@ def make_generator_if_needed(f):
     Returns the same generator if `f` is generator or
     generator yielding `f` otherwise
     :param f: function or function-generator
-    :return:
+    :return: generator
     '''
     def wrapper():
         if inspect.isgenerator(f):

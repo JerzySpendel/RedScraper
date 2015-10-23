@@ -1,6 +1,5 @@
 import asyncio
-import inspect
-from .transport import RedisTransport
+from .transport import RedisStorage
 from lxml import etree
 import json
 from io import StringIO
@@ -11,7 +10,7 @@ class DataProcessor:
     def __init__(self):
         self.buffer_size = 10
         self.data_objects = []
-        self.transport = RedisTransport()
+        self.transport = RedisStorage()
 
     def set_data_buffer(self, size):
         self.buffer_size = size
