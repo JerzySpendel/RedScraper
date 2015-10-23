@@ -10,19 +10,19 @@ class DataProcessor:
     def __init__(self):
         self.buffer_size = 10
         self.data_objects = []
-        self.transport = RedisStorage()
+        self.storage = RedisStorage()
 
     def set_data_buffer(self, size):
         self.buffer_size = size
 
-    def set_transport(self, transport):
-        self.transport = transport
+    def set_storage(self, transport):
+        self.storage = transport
 
     def process(self, data):
-        pass
+        raise NotImplementedError()
 
     def serialize_data_object(self, data_object):
-        pass
+        raise NotImplementedError()
 
     @asyncio.coroutine
     def feed_with_data(self, data):
@@ -31,7 +31,7 @@ class DataProcessor:
             if processed is not None:
                 self.data_objects.append(data_processed)
                 if len(self.data_objects) > self.buffer_size:
-                    yield from self.transport.save(self)
+                    yield from self.storage.save(self)
                     self.data_objects = []
 
     def __iter__(self):

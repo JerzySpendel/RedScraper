@@ -188,7 +188,7 @@ class CrawlersManager:
 
     @property
     def connection(self):
-        return self.data_processor.transport.connection
+        return self.data_processor.storage.connection
 
     def _clear_db(self):
         self.loop.run_until_complete(self.connection.execute('flushdb'))
@@ -209,7 +209,7 @@ class CrawlersManager:
 
     def _close_connections(self):
         self.url_dispatcher.connection.close()
-        self.data_processor.transport.connection.close()
+        self.data_processor.storage.connection.close()
 
     def set_url_constraint(self, constraint):
         self.url_constraints = [constraint]
