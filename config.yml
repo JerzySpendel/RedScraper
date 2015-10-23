@@ -8,6 +8,7 @@ save:
   member: data
 scraper:
   start_url: https://kat.cr/new/
+  request_timeout: 60
 load_balancer:
   requests:
     per_minute: 60

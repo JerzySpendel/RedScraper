@@ -8,6 +8,7 @@ from .processor import CustomProcessor
 from .helpers import normalize_url
 from .cli import args as cli_args
 from .balancer import LoadBalancer
+from .requests import Request
 import signal
 import sys
 
@@ -22,13 +23,6 @@ regex = re.compile(
     r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # ...or ipv6
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-
-
-def download(url):
-    try:
-        return (yield from aiohttp.get(url))
-    except aiohttp.errors.ContentEncodingError:
-        print('During visiting {} ContentEncodingError ocurred'.format(url))
 
 
 class URLDispatcher:
@@ -117,7 +111,7 @@ class Crawler:
     def crawl(self, future):
         yield from self.load_balancer.ask()
         url = yield from self.urldis.get_url()
-        site_downloader = download(url)
+        site_downloader = Request(url).download()
         try:
             d = yield from site_downloader
         except Exception as e:
