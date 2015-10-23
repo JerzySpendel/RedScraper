@@ -186,6 +186,13 @@ class CrawlersManager:
 
         asyncio.Task(closing_task())
 
+    @property
+    def connection(self):
+        return self.data_processor.transport.connection
+
+    def _clear_db(self):
+        self.loop.run_until_complete(self.connection.execute('flushdb'))
+
     def _do_some_init(self):
         self.loop.run_until_complete(self.url_dispatcher.init())
         if self.start_url:
@@ -197,6 +204,8 @@ class CrawlersManager:
             self.CONCURRENT_MAX = cli_args.concurrent
         if cli_args.slave:
             self.start_url = None
+        if cli_args.clear:
+            self._clear_db()
 
     def _close_connections(self):
         self.url_dispatcher.connection.close()
