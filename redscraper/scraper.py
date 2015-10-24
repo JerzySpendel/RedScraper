@@ -9,6 +9,7 @@ from .helpers import normalize_url
 from .cli import args as cli_args
 from .balancer import LoadBalancer
 from .requests import Request
+from .exceptions import BadResponse
 import signal
 import sys
 
@@ -114,8 +115,12 @@ class Crawler:
         site_downloader = Request(url).download()
         try:
             d = yield from site_downloader
+        except BadResponse:
+            print('Crawler got bad response')
+            return
         except Exception as e:
             print('Exception ocurred')
+            print(e)
             return
         html = yield from d.text()
         print(url)

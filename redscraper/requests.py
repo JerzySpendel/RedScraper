@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 from .settings import config
+from .exceptions import BadResponse
 
 
 class Request:
@@ -13,8 +14,11 @@ class Request:
     def download(self):
         try:
             t = asyncio.Task(aiohttp.get(self.url))
-            return (yield from asyncio.wait_for(t, timeout=self.timeout))
-        except aiohttp.ContentEncodingError:
+            r = yield from asyncio.wait_for(t, timeout=self.timeout)
+            if 'text/html' not in r.headers['Content-Type']:
+                raise BadResponse()
+            return r
+        except aiohttp.errors.ContentEncodingError:
             print('Bad response')
         except asyncio.TimeoutError:
             print('Przedawnienie, jeszcze raz...')
