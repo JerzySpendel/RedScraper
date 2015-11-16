@@ -269,16 +269,3 @@ class CrawlersManager:
                 yield from self.acquire()
                 asyncio.Task(self.fire())
             yield from asyncio.sleep(1)
-
-if __name__ == '__main__':
-    def url_con(url):
-        r = re.compile('.*Aktualnosci,Najciekawsze,\d,\d{1,3}\.html$')
-        if r.match(url):
-            return True
-        return False
-
-    cw = CrawlersManager()
-    cw.set_url_constraint(url_con)
-    asyncio.get_event_loop().run_until_complete(
-        cw.dispatch_control())
-    asyncio.get_event_loop().run_forever()

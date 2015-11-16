@@ -96,6 +96,8 @@ class LoadBalancer:
         self._update_fullness_rate()
         for balancer in self.balancers:
             balancer._update_fullness_rate()
+
+        #not full and children balancers are not full
         if self.fullness_rate < 1 and (not any(map(lambda x: x.fullness_rate >= 1, self.balancers))):
             self._increment()
             for balancer in self.balancers:
