@@ -108,6 +108,21 @@ class Crawler:
     def append_url_constraint(self, constraint):
         self.url_constraints.append(constraint)
 
+    def correct_urls_iterator(self, html, visited):
+        for g_url in self.get_urls(html):
+            try:
+                n_url = normalize_url(g_url, visited=visited)
+            except Exception as e:
+                print(e)
+                continue
+            bad_url = False
+            for constraint in self.url_constraints:
+                if not constraint(n_url):
+                    bad_url = True
+            if bad_url:
+                continue
+            yield n_url
+
     @asyncio.coroutine
     def crawl(self, future):
         yield from self.load_balancer.ask()
@@ -124,19 +139,8 @@ class Crawler:
             return
         html = yield from d.text()
         print(url)
-        for g_url in self.get_urls(html):
-            try:
-                n_url = normalize_url(g_url, visited=url)
-            except Exception as e:
-                print(e)
-                continue
-            bad_url = False
-            for constraint in self.url_constraints:
-                if not constraint(n_url):
-                    bad_url = True
-            if bad_url:
-                continue
-            yield from self.urldis.add_to_visit(n_url)
+        for url in self.correct_urls_iterator(html, url):
+            yield from self.urldis.add_to_visit(url)
         yield from self.data_processor.feed_with_data(html)
         future.set_result(None)
 
