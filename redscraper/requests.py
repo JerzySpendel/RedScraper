@@ -14,7 +14,7 @@ class Request:
         return {'User-Agent': 'Web Scrapper'}
 
     @asyncio.coroutine
-    def download(self):
+    def download(self, timeout_happened=False):
         try:
             t = asyncio.Task(aiohttp.get(self.url, headers=self._headers()))
             r = yield from asyncio.wait_for(t, timeout=self.timeout)
@@ -24,5 +24,7 @@ class Request:
         except aiohttp.errors.ContentEncodingError:
             print('Bad response')
         except asyncio.TimeoutError:
-            print('Przedawnienie, jeszcze raz...')
-            return (yield from self.download())
+            if timeout_happened:
+                raise BadResponse()
+            print('Timeout, second try')
+            return (yield from self.download(timeout_happened=True))

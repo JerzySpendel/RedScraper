@@ -119,7 +119,7 @@ class Crawler:
             print('Crawler got bad response')
             return
         except Exception as e:
-            print('Exception ocurred')
+            print('{} - could not be scrapped'.format(url))
             print(e)
             return
         html = yield from d.text()
