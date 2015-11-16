@@ -6,6 +6,7 @@ from .scraper import CrawlersManager
 from .helpers import normalize_url
 from .helpers import is_relative
 from .balancer import LoadBalancer
+from .requests import Request
 import time
 
 
@@ -160,3 +161,13 @@ class LoadBalancerTestCase(unittest.TestCase):
         self.loop.run_until_complete(testing_coroutine(future))
         self.assertGreater(future.result(), 2)
         self.assertLess(future.result(), 3)
+
+
+class RequestTestCase(unittest.TestCase):
+    def setUp(self):
+        self.r = Request('http://localhost')
+
+    def test_custom_headers(self):
+        self.assertTrue(
+            {('User-Agent', 'Web Scrapper')}.issubset(set(self.r._headers().items()))
+        )
