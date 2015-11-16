@@ -9,13 +9,13 @@ class LoadBalancer:
     MINUTE = 60
     SECOND = 1
 
-    def __init__(self, limit=None, type=None, under_balancer=False):
+    def __init__(self, limit=None, type=None, sub_balancer=False):
         self.limit = limit
         self.fullness_rate = fractions.Fraction(0, self.limit)
         self.unit_type = type
         self.balancers = []
         self.t = time.time()
-        if not under_balancer:
+        if not sub_balancer:
             self._load_config()
 
     def _load_config(self):
@@ -78,7 +78,7 @@ class LoadBalancer:
             self.limit = limit
             self.unit_type = type
         else:
-            balancer = LoadBalancer(limit=limit, type=type, under_balancer=True)
+            balancer = LoadBalancer(limit=limit, type=type, sub_balancer=True)
             self.add_balancer(balancer)
 
     def get_requests_limit(self):
@@ -105,10 +105,7 @@ class LoadBalancer:
             yield from asyncio.sleep(self._rest())
             yield from self.ask()
 
-    def add_balancer(self, balancer=None, limit=None, type=None):
+    def add_balancer(self, balancer):
         if balancer is not None:
             self.balancers.append(balancer)
             return
-        balancer = LoadBalancer()
-        balancer.add_requests_limit(limit, type)
-        self.add_balancer(balancer)

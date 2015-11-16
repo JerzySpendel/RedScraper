@@ -6,7 +6,6 @@ from .scraper import CrawlersManager
 from .helpers import normalize_url
 from .helpers import is_relative
 from .balancer import LoadBalancer
-import random
 import time
 
 
@@ -80,15 +79,11 @@ class LoadBalancerConfigurationTestCase(unittest.TestCase):
         self.balancer.set_requests_limit(10, LoadBalancer.SECOND)
         self.assertEqual(self.balancer.get_requests_limit(), (10, LoadBalancer.SECOND))
 
-    def test_adding_balancer1(self):
-        self.balancer.add_balancer(limit=30, type=LoadBalancer.MINUTE)
-        self.assertEqual(len(self.balancer.balancers), 1)
-
-    def test_adding_balancer2(self):
+    def test_adding_balancer(self):
         balancer = LoadBalancer()
         balancer.add_requests_limit(30, LoadBalancer.MINUTE)
         self.balancer.add_balancer(balancer)
-        self.assertEqual(len(self.balancer.balancers), 1)
+        self.assertEqual(len(self.balancer.balancers), 3)
 
     def test_creating_balancer(self):
         balancer = LoadBalancer(30, LoadBalancer.MINUTE)
@@ -131,7 +126,7 @@ class LoadBalancerTestCase(unittest.TestCase):
         def testing_coroutine(future):
             coro_list = []
             t = time.time()
-            for i in range(61):
+            for i in range(3):
                 task = asyncio.Task(request_faker())
                 coro_list.append(task)
             yield from asyncio.wait(coro_list)
