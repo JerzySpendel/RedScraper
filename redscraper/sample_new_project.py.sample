@@ -1,0 +1,41 @@
+from redscraper.processor import DataProcessor
+from redscraper.scraper import CrawlersManager
+import asyncio
+
+#Example of implementation in example.py
+
+
+class Processor(DataProcessor):
+    def process(self, data):
+        '''
+        Should return any python object or generator of objects
+        to be serialized to string by `serialize_data_object`
+        :param data: content of site (HTML)
+        :return: Any python object
+        '''
+        pass
+
+    def serialize_data_object(self, data_object):
+        '''
+        Every object yielded or returned by `process`
+        has to be serialized to string to be pushed to Redis.
+        It often can be done using `json` package
+        :param data_object: object returned by self.process
+        :return: string
+        '''
+        pass
+
+
+def new_url(url):
+    '''
+    :param url: url to analyze it should be crawled or not
+    :return: True or False depending it should be crawled or not
+    '''
+    return True
+
+cw = CrawlersManager(Processor())
+cw.append_url_constraint(new_url)
+asyncio.get_event_loop().run_until_complete(
+    cw.dispatch_control()
+)
+asyncio.get_event_loop().run_forever()

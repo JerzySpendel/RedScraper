@@ -7,4 +7,9 @@ save:
   where: to_redis
   member: data
 scraper:
-  start_url: http://dobreprogramy.pl
+  start_url: <starting_url>
+  request_timeout: 60
+load_balancer:
+  requests:
+    per_minute: 60
+    per_second: 1
