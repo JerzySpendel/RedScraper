@@ -13,12 +13,17 @@ class Request:
     def _headers(self):
         return {'User-Agent': 'Web Scrapper'}
 
+    def _validate_response(self, resp):
+        if 'text/html' not in resp.headers['Content-Type']:
+            return False
+        return True
+
     @asyncio.coroutine
     def download(self, timeout_happened=False):
         try:
             t = asyncio.Task(aiohttp.get(self.url, headers=self._headers()))
             r = yield from asyncio.wait_for(t, timeout=self.timeout)
-            if 'text/html' not in r.headers['Content-Type']:
+            if not self._validate_response(r):
                 raise BadResponse()
             return r
         except aiohttp.errors.ContentEncodingError:
