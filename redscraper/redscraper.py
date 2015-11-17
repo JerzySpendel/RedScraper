@@ -4,7 +4,7 @@ import os
 
 
 parser = argparse.ArgumentParser(description='Redscrapper project creating helper')
-parser.add_argument('-n', dest='name', help="New project's name")
+parser.add_argument('-n', dest='name', help="New project's name", required=True)
 
 
 parsed = parser.parse_args()
