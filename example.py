@@ -26,6 +26,6 @@ def new_url(url):
 cw = CrawlersManager(TPBProcessor())
 cw.append_url_constraint(new_url)
 asyncio.get_event_loop().run_until_complete(
-    cw.fire()
+    cw.run()
 )
 asyncio.get_event_loop().run_forever()

@@ -159,9 +159,10 @@ class Crawler:
 class CrawlersManager:
     CONCURRENT_MAX = 10
     url_constraints = []
+    state = 'running'
+    crawlers = []
 
     def __init__(self, data_processor=None):
-        self.state = 'running'
         self.start_url = config['scraper']['start_url']
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
@@ -262,3 +263,10 @@ class CrawlersManager:
     def crawler_done(self):
         if self.state == 'running':
             asyncio.Task(self.fire())
+
+    @asyncio.coroutine
+    def run(self):
+        for _ in range(self.CONCURRENT_MAX):
+            t = asyncio.Task(self.fire())
+            self.crawlers.append(t)
+        yield from asyncio.wait(self.crawlers)
