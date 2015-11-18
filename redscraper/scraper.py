@@ -161,6 +161,7 @@ class CrawlersManager:
     url_constraints = []
 
     def __init__(self, data_processor=None):
+        self.state = 'running'
         self.start_url = config['scraper']['start_url']
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
@@ -175,6 +176,7 @@ class CrawlersManager:
 
     def _quit_handler(self, signal, frame):
         print('\nAll crawlers are being stopped')
+        self.state = 'stopped'
         self.set_concurrent_crawlers(0)
         self.cc_future.set_result(None)
         output = sys.stdout
@@ -243,7 +245,6 @@ class CrawlersManager:
     def fire_one(self):
 
         def done_callback():
-            self.release()
             asyncio.Task(self.crawler_done())
 
         future = asyncio.Future()
@@ -253,23 +254,11 @@ class CrawlersManager:
 
     @asyncio.coroutine
     def fire(self):
-        future = self.fire_one()
-        result = yield from future
-
-    @asyncio.coroutine
-    def dispatch_control(self):
-        asyncio.Task(self.constant_control(self.cc_future))
+        yield from self.acquire()
+        yield from self.fire_one()
+        self.release()
 
     @asyncio.coroutine
     def crawler_done(self):
-        while self.concurrent < self.CONCURRENT_MAX:
-            yield from self.acquire()
+        if self.state == 'running':
             asyncio.Task(self.fire())
-
-    @asyncio.coroutine
-    def constant_control(self, future):
-        while not future.done():
-            while self.concurrent < self.CONCURRENT_MAX:
-                yield from self.acquire()
-                asyncio.Task(self.fire())
-            yield from asyncio.sleep(1)
