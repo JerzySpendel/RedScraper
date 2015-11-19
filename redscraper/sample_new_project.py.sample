@@ -8,7 +8,7 @@ import asyncio
 class Processor(DataProcessor):
     def process(self, data):
         '''
-        Should return any python object or generator of objects
+        Should return any python object or generator (yield) of objects
         to be serialized to string by `serialize_data_object`
         :param data: content of site (HTML)
         :return: Any python object

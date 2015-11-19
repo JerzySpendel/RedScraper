@@ -16,12 +16,14 @@ class Request:
     def _validate_response(self, resp):
         if 'text/html' not in resp.headers['Content-Type']:
             return False
+        if not resp.status == 200:
+            return False
         return True
 
     @asyncio.coroutine
     def download(self, timeout_happened=False):
         try:
-            t = asyncio.Task(aiohttp.get(self.url, headers=self._headers()))
+            t = aiohttp.get(self.url, headers=self._headers())
             r = yield from asyncio.wait_for(t, timeout=self.timeout)
             if not self._validate_response(r):
                 raise BadResponse()
