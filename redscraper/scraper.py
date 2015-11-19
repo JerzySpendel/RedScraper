@@ -269,3 +269,4 @@ class CrawlersManager:
     @asyncio.coroutine
     def stop(self):
         yield from asyncio.wait(self.crawlers)
+        self.crawlers = []
