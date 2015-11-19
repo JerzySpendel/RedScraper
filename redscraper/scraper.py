@@ -186,8 +186,7 @@ class CrawlersManager:
 
         @asyncio.coroutine
         def closing_task():
-            while self.concurrent != 0:
-                yield from asyncio.sleep(0.5)
+            yield from self.stop()
             sys.stdout = output
             self._close_connections()
             print('Crawlers and connections closed')
@@ -266,3 +265,7 @@ class CrawlersManager:
     def run(self):
         for _ in range(self.CONCURRENT_MAX):
             self.crawlers.append(self.fire_one())
+
+    @asyncio.coroutine
+    def stop(self):
+        yield from asyncio.wait(self.crawlers)
