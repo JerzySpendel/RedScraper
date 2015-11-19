@@ -257,18 +257,12 @@ class CrawlersManager:
         return future
 
     @asyncio.coroutine
-    def fire(self):
-        print(self.concurrent)
-        yield from self.fire_one()
-
-    @asyncio.coroutine
     def crawler_done(self, crawler_task):
         self.crawlers.remove(crawler_task)
         if self.state == 'running':
-            asyncio.Task(self.fire())
+            self.crawlers.append(self.fire_one())
 
     @asyncio.coroutine
     def run(self):
         for _ in range(self.CONCURRENT_MAX):
-            t = asyncio.Task(self.fire())
-            self.crawlers.append(t)
+            self.crawlers.append(self.fire_one())
