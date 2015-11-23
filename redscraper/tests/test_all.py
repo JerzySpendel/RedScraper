@@ -1,12 +1,12 @@
 import unittest
 import asyncio
-from .scraper import RedisURLDispatcher
-from .scraper import URLDispatcher
-from .scraper import CrawlersManager
-from .helpers import normalize_url
-from .helpers import is_relative
-from .balancer import LoadBalancer
-from .requests import Request
+from redscraper.scraper import RedisURLDispatcher
+from redscraper.scraper import URLDispatcher
+from redscraper.scraper import CrawlersManager
+from redscraper.helpers import normalize_url
+from redscraper.helpers import is_relative
+from redscraper.balancer import LoadBalancer
+from redscraper.requests import Request
 import time
 
 
