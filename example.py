@@ -17,14 +17,14 @@ class TPBProcessor(DataProcessor):
         return json.dumps(data_object)
 
 
-def new_url(url):
+def url_filter(url):
     r = re.compile('.*new/\d+')
     if r.match(url):
         return True
     return False
 
 cw = CrawlersManager(TPBProcessor())
-cw.append_url_constraint(new_url)
+cw.append_url_constraint(url_filter)
 asyncio.get_event_loop().run_until_complete(
     cw.run()
 )
