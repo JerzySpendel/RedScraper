@@ -27,7 +27,9 @@ class Request:
             r = yield from asyncio.wait_for(t, timeout=self.timeout)
             if not self._validate_response(r):
                 raise BadResponse()
-            return r
+            text = yield from r.text()
+            r.close()
+            return text
         except aiohttp.errors.ContentEncodingError:
             print('Bad response')
         except asyncio.TimeoutError:

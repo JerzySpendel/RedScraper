@@ -131,7 +131,7 @@ class Crawler:
         url = yield from self.urldis.get_url()
         site_downloader = Request(url).download()
         try:
-            d = yield from site_downloader
+            html = yield from site_downloader
         except BadResponse:
             print('Crawler got bad response')
             return
@@ -139,7 +139,6 @@ class Crawler:
             print('{} - could not be scrapped'.format(url))
             print(e)
             return
-        html = yield from d.text()
         print(url)
         for url in self.correct_urls_iterator(html, url):
             yield from self.urldis.add_to_visit(url)
@@ -247,9 +246,8 @@ class CrawlersManager:
 
         future = asyncio.Future()
         crawler = self._new_crawler()
-        future.add_done_callback(lambda res: done_callback(crawler_task))
-        crawler_task = asyncio.Task(crawler.crawl(future))
-        self.crawlers.append(crawler_task)
+        future.add_done_callback(lambda res: done_callback(future))
+        asyncio.Task(crawler.crawl(future))
         return future
 
     @asyncio.coroutine
