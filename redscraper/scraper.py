@@ -179,7 +179,6 @@ class CrawlersManager:
 
     def _quit_handler(self, signal, frame):
         print('\nAll crawlers are being stopped')
-        self.state = 'stopped'
         output = sys.stdout
         sys.stdout = None #silence crawlers
 
@@ -187,7 +186,6 @@ class CrawlersManager:
         def closing_task():
             yield from self.stop()
             sys.stdout = output
-            self._close_connections()
             print('Crawlers and connections closed')
             self.loop.stop()
             print('Loop closed')
@@ -262,11 +260,14 @@ class CrawlersManager:
 
     @asyncio.coroutine
     def run(self):
+        self.state = 'running'
         for _ in range(self.CONCURRENT_MAX):
             self.crawlers.append(self.fire_one())
 
     @asyncio.coroutine
     def stop(self):
+        self.state = 'stopped'
         self.set_concurrent_crawlers(0)
         yield from asyncio.wait(self.crawlers)
+        self._close_connections()
         self.crawlers = []
