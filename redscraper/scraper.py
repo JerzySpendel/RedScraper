@@ -189,7 +189,7 @@ class CrawlersManager:
             self.loop.stop()
             print('Loop closed')
 
-        asyncio.Task(closing_task())
+        asyncio.ensure_future(closing_task())
 
     @property
     def connection(self):
@@ -247,7 +247,7 @@ class CrawlersManager:
         future = asyncio.Future()
         crawler = self._new_crawler()
         future.add_done_callback(lambda res: done_callback(future))
-        asyncio.Task(crawler.crawl(future))
+        asyncio.ensure_future(crawler.crawl(future))
         return future
 
     @asyncio.coroutine
