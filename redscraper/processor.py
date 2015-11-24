@@ -1,8 +1,5 @@
 import asyncio
 from .transport import RedisStorage
-from lxml import etree
-import json
-from io import StringIO
 from .helpers import make_generator_if_needed
 
 
@@ -37,15 +34,4 @@ class DataProcessor:
     def __iter__(self):
         for data_object in self.data_objects:
             yield self.serialize_data_object(data_object)
-
-
-class CustomProcessor(DataProcessor):
-
-    def process(self, data):
-        parser = etree.HTMLParser()
-        root = etree.parse(StringIO(data), parser=parser).getroot()
-        return root.xpath('//h4[@class="text-h25 title-comments-padding font-serif"]//a//text()')
-
-    def serialize_data_object(self, data_object):
-        return json.dumps(data_object)
 

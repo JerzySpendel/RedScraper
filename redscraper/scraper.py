@@ -1,10 +1,8 @@
 import asyncio
-import aiohttp
 import aioredis
 from bs4 import BeautifulSoup
 import re
 from .settings import config
-from .processor import CustomProcessor
 from .helpers import normalize_url
 from .cli import args as cli_args
 from .balancer import LoadBalancer
@@ -164,13 +162,13 @@ class CrawlersManager:
     state = 'running'
     crawlers = []
 
-    def __init__(self, data_processor=None):
+    def __init__(self, data_processor):
         self.start_url = config['scraper']['start_url']
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher()
         self.semaphore = asyncio.Semaphore(value=self.CONCURRENT_MAX)
         self.concurrent = 0
-        self.data_processor = data_processor or CustomProcessor()
+        self.data_processor = data_processor
         self.load_balancer = LoadBalancer()
         signal.signal(signal.SIGINT, self._quit_handler)
         self._parse_cli()
