@@ -95,6 +95,7 @@ class RedisURLDispatcher:
 
 class Crawler:
     def __init__(self, cm, urldis, data_processor, load_balancer):
+        self.future = asyncio.Future()
         self.cm = cm
         self.urldis = urldis
         self.url_constraints = []
@@ -123,7 +124,7 @@ class Crawler:
             yield n_url
 
     @asyncio.coroutine
-    def crawl(self, future):
+    def crawl(self):
         yield from self.cm.acquire()
         yield from self.load_balancer.ask()
         url = yield from self.urldis.get_url()
@@ -142,7 +143,7 @@ class Crawler:
             yield from self.urldis.add_to_visit(url)
         yield from self.data_processor.feed_with_data(html)
         self.cm.release()
-        future.set_result(None)
+        self.future.set_result(None)
 
     def get_urls(self, html):
         soup = BeautifulSoup(html, 'lxml')
@@ -242,11 +243,10 @@ class CrawlersManager:
         def done_callback(crawler_task):
             asyncio.Task(self.crawler_done(crawler_task))
 
-        future = asyncio.Future()
         crawler = self._new_crawler()
-        future.add_done_callback(lambda res: done_callback(future))
-        asyncio.ensure_future(crawler.crawl(future))
-        return future
+        crawler.future.add_done_callback(lambda res: done_callback(crawler))
+        asyncio.ensure_future(crawler.crawl())
+        return crawler
 
     @asyncio.coroutine
     def crawler_done(self, crawler_task):
@@ -264,6 +264,6 @@ class CrawlersManager:
     def stop(self):
         self.state = 'stopped'
         self.set_concurrent_crawlers(0)
-        yield from asyncio.wait(self.crawlers)
+        yield from asyncio.wait(map(lambda c: c.future, self.crawlers))
         self._close_connections()
         self.crawlers = []
