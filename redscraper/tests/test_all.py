@@ -7,6 +7,8 @@ from redscraper.helpers import normalize_url
 from redscraper.helpers import is_relative
 from redscraper.balancer import LoadBalancer
 from redscraper.requests import Request
+from redscraper.utils import State
+from .utils import TestingProcessor
 import time
 
 
@@ -14,7 +16,8 @@ class RedisURLDispatcherTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.loop = asyncio.get_event_loop()
-        self.dispatcher = RedisURLDispatcher()
+        self.cm = CrawlersManager(TestingProcessor())
+        self.dispatcher = self.cm.url_dispatcher
 
     def test_add_to_visit(self):
         @asyncio.coroutine
@@ -56,7 +59,7 @@ class CrawlersManagerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.loop = asyncio.get_event_loop()
-        self.cm = CrawlersManager()
+        self.cm = CrawlersManager(TestingProcessor())
 
     def test_semaphore(self):
         self.assertEqual(self.cm.concurrent, 0)
@@ -171,3 +174,10 @@ class RequestTestCase(unittest.TestCase):
         self.assertTrue(
             {('User-Agent', 'Web Scrapper')}.issubset(set(self.r._headers().items()))
         )
+
+
+class UtilsTestCase(unittest.TestCase):
+
+    def test_comparision(self):
+        self.assertLessEqual(State("created"), State("getting_url"))
+        self.assertLessEqual(State("getting_url"), State("done"))
