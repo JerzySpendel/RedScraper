@@ -88,7 +88,6 @@ class RedisURLDispatcher:
             left = yield from self.urls_left()
             # if there's no url left and all crawlers are (or will be) trying to get one - start stopping procedure
             if all(map(lambda crawler: crawler.state <= State('getting_url'), self.cm.crawlers)) and not left:
-                print('Zwracam nona')
                 if not self.cm.state == 'stopped':
                     self.cm._quit_handler(None, None)
                 return None
