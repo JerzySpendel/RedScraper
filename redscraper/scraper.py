@@ -8,6 +8,7 @@ from .cli import args as cli_args
 from .balancer import LoadBalancer
 from .requests import Request
 from .exceptions import BadResponse
+from .utils import State
 import signal
 import sys
 
@@ -61,8 +62,9 @@ class RedisURLDispatcher:
     to visit
     '''
 
-    def __init__(self, loop=None):
+    def __init__(self, cm, loop=None):
         self.loop = loop or asyncio.get_event_loop()
+        self.cm = cm
         self.url = config['redis']['url']
         self.port = int(config['redis']['port'])
         self.connection = None
@@ -83,7 +85,14 @@ class RedisURLDispatcher:
     def get_url(self):
         url = yield from self.connection.execute('spop', self.to_visit)
         while url is None:
-            yield from asyncio.sleep(0.1)
+            left = yield from self.urls_left()
+            # if there's no url left and all crawlers are (or will be) trying to get one - start stopping procedure
+            if all(map(lambda crawler: crawler.state <= State('getting_url'), self.cm.crawlers)) and not left:
+                print('Zwracam nona')
+                if not self.cm.state == 'stopped':
+                    self.cm._quit_handler(None, None)
+                return None
+            yield from asyncio.sleep(0.3)
             url = yield from self.connection.execute('spop', self.to_visit)
         yield from self.add_to_visited(url)
         return url
@@ -92,8 +101,14 @@ class RedisURLDispatcher:
     def add_to_visited(self, url):
         yield from self.connection.execute('sadd', self.visited, url)
 
+    @asyncio.coroutine
+    def urls_left(self):
+        return (yield from self.connection.execute('scard', self.to_visit))
+
 
 class Crawler:
+    state = State('created')
+
     def __init__(self, cm, urldis, data_processor, load_balancer):
         self.future = asyncio.Future()
         self.cm = cm
@@ -127,8 +142,13 @@ class Crawler:
     def crawl(self):
         yield from self.cm.acquire()
         yield from self.load_balancer.ask()
+        self.state = State('getting_url')
         url = yield from self.urldis.get_url()
+        if not url:
+            self._done()
+            return
         site_downloader = Request(url).download()
+        self.state = State('downloading_site')
         try:
             html = yield from site_downloader
         except BadResponse:
@@ -139,11 +159,17 @@ class Crawler:
             print(e)
             return
         print(url)
+        self.state = State('pushing_urls')
         for url in self.correct_urls_iterator(html, url):
             yield from self.urldis.add_to_visit(url)
+        self.state = State('feeding_data')
         yield from self.data_processor.feed_with_data(html)
+        self._done()
+
+    def _done(self):
         self.cm.release()
         self.future.set_result(None)
+        self.state = State('done')
 
     def get_urls(self, html):
         soup = BeautifulSoup(html, 'lxml')
@@ -166,7 +192,7 @@ class CrawlersManager:
     def __init__(self, data_processor):
         self.start_url = config['scraper']['start_url']
         self.loop = asyncio.get_event_loop()
-        self.url_dispatcher = RedisURLDispatcher()
+        self.url_dispatcher = RedisURLDispatcher(self)
         self.semaphore = asyncio.Semaphore(value=self.CONCURRENT_MAX)
         self.concurrent = 0
         self.data_processor = data_processor
