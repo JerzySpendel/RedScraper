@@ -1,5 +1,5 @@
 from redscraper.processor import DataProcessor
-
+from redscraper.extractor import BaseExtractor
 import aiohttp
 import asyncio
 import aiohttp.server
@@ -46,3 +46,11 @@ class TestingProcessor(DataProcessor):
 
     def serialize_data_object(self, data_object):
         return "1"
+
+
+class TestingExtractor(BaseExtractor):
+    def setup_extractor(self):
+        self.extracted = []
+
+    def process(self, object):
+        self.extracted.append(object)
