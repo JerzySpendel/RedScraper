@@ -24,5 +24,19 @@ class TestExtractor:
         self.loop.run_until_complete(self.extractor.get_chunk())
         assert self.extractor.index == 100
 
+    def test_get_chunk(self):
+
+        @asyncio.coroutine
+        def testing_coro(future):
+            chunk = yield from self.extractor.get_chunk()
+            future.set_result(len(chunk))
+
+        for i in range(1, 4):
+            self.extractor.set_buffer(i*10)
+            future = asyncio.Future()
+            asyncio.ensure_future(testing_coro(future))
+            length = self.loop.run_until_complete(future)
+            assert length == i*10
+
     def teardown_method(self, method):
         self.loop.run_until_complete(self.extractor.connection.execute('del', self.test_data_field))

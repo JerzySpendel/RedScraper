@@ -26,7 +26,7 @@ class BaseExtractor(metaclass=abc.ABCMeta):
 
     @asyncio.coroutine
     def get_chunk(self):
-        chunk = yield from self.connection.execute("lrange", self.save_field, self.index, self.buffer_size-1)
+        chunk = yield from self.connection.execute("lrange", self.save_field, self.index, self.buffer_size+self.index-1)
         self.index += self.buffer_size
         return chunk
 
