@@ -86,7 +86,8 @@ class RedisURLDispatcher:
         url = yield from self.connection.execute('spop', self.to_visit)
         while url is None:
             left = yield from self.urls_left()
-            # if there's no url left and all crawlers are (or will be) trying to get one - start stopping procedure
+            # if there's no url left and ALL crawlers are (or will be) trying to get one - start stopping procedure
+            # there's not chance that new url will appear
             if all(map(lambda crawler: crawler.state <= State('getting_url'), self.cm.crawlers)) and not left:
                 if not self.cm.state == 'stopped':
                     self.cm._quit_handler(None, None)
@@ -189,6 +190,7 @@ class CrawlersManager:
     crawlers = []
 
     def __init__(self, data_processor):
+        self.future = asyncio.Future()
         self.start_url = config['scraper']['start_url']
         self.loop = asyncio.get_event_loop()
         self.url_dispatcher = RedisURLDispatcher(self)
@@ -210,8 +212,6 @@ class CrawlersManager:
             yield from self.stop()
             sys.stdout = output
             print('Crawlers and connections closed')
-            self.loop.stop()
-            print('Loop closed')
 
         asyncio.ensure_future(closing_task())
 
@@ -284,6 +284,7 @@ class CrawlersManager:
         self.state = 'running'
         for _ in range(self.CONCURRENT_MAX):
             self.crawlers.append(self.fire_one())
+        yield from self.future
 
     @asyncio.coroutine
     def stop(self):
@@ -292,3 +293,4 @@ class CrawlersManager:
         yield from asyncio.wait(map(lambda c: c.future, self.crawlers))
         self._close_connections()
         self.crawlers = []
+        self.future.set_result(True)

@@ -32,3 +32,18 @@ class RedisStorage:
     def save(self, data_processor):
         for data_object in data_processor:
             yield from self.connection.execute('lpush', self.save_field, data_object)
+
+
+class MemoryStorage:
+    def __init__(self, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
+        self.file = open('output', 'w')
+
+    @asyncio.coroutine
+    def init(self):
+        return
+
+    @asyncio.coroutine
+    def save(self, data_processor):
+        for data_object in data_processor:
+            self.file.write(data_object)

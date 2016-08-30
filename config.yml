@@ -7,7 +7,7 @@ save:
   where: to_redis
   member: data
 scraper:
-  start_url: http://kat.cr/new
+  start_url: http://www.dobreprogramy.pl/Aktualnosci,Najciekawsze,0,2.html
   request_timeout: 60
 load_balancer:
   requests:

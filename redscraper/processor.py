@@ -4,8 +4,8 @@ from .helpers import make_generator_if_needed
 
 
 class DataProcessor:
-    def __init__(self):
-        self.buffer_size = 10
+    def __init__(self, buffer_size=10):
+        self.buffer_size = buffer_size
         self.data_objects = []
         self.storage = RedisStorage()
 
@@ -26,6 +26,7 @@ class DataProcessor:
         processed = make_generator_if_needed(self.process(data))
         for data_processed in processed:
             if processed is not None:
+                print(data_processed)
                 self.data_objects.append(data_processed)
                 if len(self.data_objects) > self.buffer_size:
                     yield from self.storage.save(self)

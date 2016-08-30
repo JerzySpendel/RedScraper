@@ -1,4 +1,5 @@
 # Ignore redis binary dump (dump.rdb) files
+*venv
 *.rdb
 
 # Byte-compiled / optimized / DLL files
