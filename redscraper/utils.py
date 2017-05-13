@@ -14,11 +14,7 @@ class State:
         self.name = name
 
     def __le__(self, other):
-        if self.states.index(self.name) <= self.states.index(other.name):
-            return True
-        return False
+        return self.states.index(self.name) <= self.states.index(other.name)
 
     def __lt__(self, other):
-        if self.states.index(self.name) < self.states.index(other.name):
-            return True
-        return False
+        return self.states.index(self.name) < self.states.index(other.name)
