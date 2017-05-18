@@ -11,7 +11,7 @@ class DPProcessor(DataProcessor):
     def process(self, data):
         parser = etree.HTMLParser()
         root = etree.parse(StringIO(data), parser=parser).getroot()
-        data = root.xpath('//div[@class="clearfix"]/header/h4/a/text()')
+        data = root.xpath('//a[@class="detLink"]/text()')
         yield from data
 
     def serialize_data_object(self, data_object):
@@ -19,7 +19,7 @@ class DPProcessor(DataProcessor):
 
 
 def url_filter(url):
-    r = re.compile('.*Najciekawsze,0,\d+.*?')
+    r = re.compile('.*recent/\d+')
     if r.match(url):
         return True
     return False

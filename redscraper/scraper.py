@@ -88,8 +88,9 @@ class RedisURLDispatcher:
             left = yield from self.urls_left()
             # if there's no url left and ALL crawlers are (or will be) trying to get one - start stopping procedure
             # there's not chance that new url will appear
-            if all(map(lambda crawler: crawler.state <= State('getting_url'), self.cm.crawlers)) and not left:
+            if all([crawler.state <= State('getting_url') for crawler in self.cm.crawlers]) and not left:
                 if not self.cm.state == 'stopped':
+                    print('stoppowanko')
                     self.cm._quit_handler(None, None)
                 return None
             yield from asyncio.sleep(0.3)
@@ -156,6 +157,7 @@ class Crawler:
             return
         except Exception as e:
             print('{} - could not be scrapped'.format(url))
+            import pdb; pdb.set_trace()
             print(e)
             return
         print(url)
